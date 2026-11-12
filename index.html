@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title></title>
+<script>
+  // ↓↓↓ 只改这一行：填纯域名 或 完整地址 都能跳 ↓↓↓
+  var TARGET = '1213.loveslife.biz';
+
+  // 没写 http(s):// 就自动补 https://，顺手去掉误贴的开头斜杠
+  var url = /^https?:\/\//i.test(TARGET)
+    ? TARGET
+    : 'https://' + TARGET.replace(/^\/+/, '');
+
+  // 兜底：动态注入 meta refresh，和主跳转共用同一个地址（不会改一处忘一处）
+  var m = document.createElement('meta');
+  m.httpEquiv = 'refresh';
+  m.content = '0;url=' + url;
+  document.head.appendChild(m);
+
+  // 主跳转：replace 不留历史记录，点「后退」不会弹回空白页
+  location.replace(url);
+</script>
+</head>
+<body></body>
+</html>
