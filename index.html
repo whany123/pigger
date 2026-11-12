@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>正在打开</title>
+<style>
+  :root { --d: 1500ms; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid; place-items: center; overflow: hidden;
+    background: radial-gradient(120% 120% at 50% 0%, #1b2440 0%, #0b0f1c 60%, #070a12 100%);
+    color: #e8edf7;
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card { width: min(88vw, 320px); padding: 24px; text-align: center; opacity: 0; }
+  body.ready .card { animation: fadein .4s ease both; }
+  .ring {
+    width: 54px; height: 54px; margin: 0 auto 22px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.12);
+    border-top-color: #6ea8ff; border-right-color: #a78bfa;
+    animation: spin .9s linear infinite;
+  }
+  .title { font-size: 16px; letter-spacing: .04em; margin: 0 0 6px; }
+  .sub { font-size: 12.5px; color: #8b97ad; margin: 0 0 24px; }
+  .bar { height: 3px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }
+  .bar > i {
+    display: block; height: 100%; width: 0; border-radius: 99px;
+    background: linear-gradient(90deg, #6ea8ff, #a78bfa);
+    animation: fill var(--d) linear forwards;
+  }
+  .tip { margin: 14px 0 0; font-size: 11.5px; color: #66738a; }
+  .tip a { color: #7b879c; text-decoration: none; }
+  body.done .card { animation: fadeout .3s ease forwards; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fill { to { width: 100%; } }
+  @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes fadeout { to { opacity: 0; transform: scale(.98); } }
+  @media (prefers-reduced-motion: reduce) {
+    .ring { animation-duration: 2s; }
+    body.ready .card, body.done .card { animation-duration: .01ms; }
+  }
+</style>
+
+<!-- 禁用 JS 时兜底：2 秒后照样打开 -->
+<noscript>
+  <meta http-equiv="refresh" content="2;url=https://1213.loveslife.biz">
+  <style>
+    body { display: grid; place-items: center; background: #0b0f1c; color: #e8edf7;
+           font: 15px/1.6 sans-serif; text-align: center; }
+  </style>
+</noscript>
+</head>
+<body>
+
+<div class="card" id="card">
+  <div class="ring"></div>
+  <p class="title">正在打开…</p>
+  <p class="sub">请稍候</p>
+  <div class="bar"><i></i></div>
+  <p class="tip">若长时间无响应，<a id="manual" href="#">继续</a></p>
+</div>
+
+<noscript><p>正在打开…</p></noscript>
+
+<script>
+  // ↓↓↓ 只改这两行 ↓↓↓
+  var TARGET = '1213.loveslife.biz';   // 纯域名或完整 https:// 地址都认
+  var JUMP_DELAY = 1500;               // 动画时长（毫秒），想更快改成 800
+
+  // 没写协议就自动补 https://；写了 http(s):// 就原样使用
+  var url = /^https?:\/\//i.test(TARGET) ? TARGET : 'https://' + TARGET.replace(/^\/+/, '');
+
+  document.documentElement.style.setProperty('--d', JUMP_DELAY + 'ms');
+  document.getElementById('manual').href = url;
+  document.body.classList.add('ready');
+
+  // 进度条走满 → 淡出 → 打开（replace 不留历史，后退不会弹回本页）
+  setTimeout(function () {
+    document.body.classList.add('done');
+    setTimeout(function () { location.replace(url); }, 300);
+  }, JUMP_DELAY);
+</script>
+</body>
+</html>
