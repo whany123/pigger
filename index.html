@@ -3,85 +3,387 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>正在打开</title>
-<style>
-  :root { --d: 1500ms; }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    display: grid; place-items: center; overflow: hidden;
-    background: radial-gradient(120% 120% at 50% 0%, #1b2440 0%, #0b0f1c 60%, #070a12 100%);
-    color: #e8edf7;
-    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  .card { width: min(88vw, 320px); padding: 24px; text-align: center; opacity: 0; }
-  body.ready .card { animation: fadein .4s ease both; }
-  .ring {
-    width: 54px; height: 54px; margin: 0 auto 22px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,.12);
-    border-top-color: #6ea8ff; border-right-color: #a78bfa;
-    animation: spin .9s linear infinite;
-  }
-  .title { font-size: 16px; letter-spacing: .04em; margin: 0 0 6px; }
-  .sub { font-size: 12.5px; color: #8b97ad; margin: 0 0 24px; }
-  .bar { height: 3px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }
-  .bar > i {
-    display: block; height: 100%; width: 0; border-radius: 99px;
-    background: linear-gradient(90deg, #6ea8ff, #a78bfa);
-    animation: fill var(--d) linear forwards;
-  }
-  .tip { margin: 14px 0 0; font-size: 11.5px; color: #66738a; }
-  .tip a { color: #7b879c; text-decoration: none; }
-  body.done .card { animation: fadeout .3s ease forwards; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes fill { to { width: 100%; } }
-  @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  @keyframes fadeout { to { opacity: 0; transform: scale(.98); } }
-  @media (prefers-reduced-motion: reduce) {
-    .ring { animation-duration: 2s; }
-    body.ready .card, body.done .card { animation-duration: .01ms; }
-  }
-</style>
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#ffffff">
+<title>机电人的小站 · 访问提示</title>
+<!--
+================================================================
+ 机电人的小站 · 访问入口页（单文件）
+ 放置位置：GitHub 仓库 /pigger/index.html
+ 对外地址：https://whany123.github.io/pigger/
+----------------------------------------------------------------
+ 界面、复制内容、分享链接中只出现上面这个对外地址。
+ 真实站点地址以编码形式存于 CONFIG.TARGET_B64，仅用于内部跳转，
+ 不渲染到页面任何可见位置、不写进链接 href。
 
-<!-- 禁用 JS 时兜底：2 秒后照样打开 -->
-<noscript>
-  <meta http-equiv="refresh" content="2;url=https://1213.loveslife.biz">
-  <style>
-    body { display: grid; place-items: center; background: #0b0f1c; color: #e8edf7;
-           font: 15px/1.6 sans-serif; text-align: center; }
-  </style>
-</noscript>
+ 行为：
+  · 普通浏览器 → 直接进入站点
+  · 微信 / QQ / 抖音等内置浏览器 + Android → 尝试唤起系统浏览器，
+    同时保留引导层（微信内常被拦，引导层是真正兜底）
+  · 微信 / QQ / 抖音等内置浏览器 + iOS → 不尝试自动唤起（平台无可用
+    scheme），给出规范提示 + 一键复制对外地址
+  · 无 JavaScript / 脚本异常 → 仍有可读提示与可复制地址，不白屏
+================================================================
+-->
+<style>
+:root{
+  --ink:#1b2430; --ink-2:#4a5568; --ink-3:#8590a2;
+  --line:#e6e9ef; --line-2:#f0f2f6; --bg:#f4f6f9;
+  --brand:#1f4e9c; --brand-soft:#eef3fb; --ok:#1a7f52;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:28px 18px calc(28px + env(safe-area-inset-bottom));
+}
+.wrap{width:100%;max-width:420px}
+
+/* ---------- 顶部标识 ---------- */
+.masthead{display:flex;align-items:center;gap:12px;padding:2px 2px 20px}
+.logo{
+  width:42px;height:42px;flex:0 0 42px;border-radius:11px;
+  background:var(--brand);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(31,78,156,.18)
+}
+.logo svg{width:23px;height:23px;display:block}
+.mh-txt strong{display:block;font-size:16px;font-weight:700;letter-spacing:.2px;line-height:1.35}
+.mh-txt span{display:block;font-size:12px;color:var(--ink-3);margin-top:2px;letter-spacing:.4px}
+
+/* ---------- 卡片 ---------- */
+.card{
+  background:#fff;border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 3px 14px rgba(27,36,48,.05);overflow:hidden
+}
+.card-hd{padding:22px 22px 18px;border-bottom:1px solid var(--line-2);position:relative}
+.env{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--brand);background:var(--brand-soft);
+  border:1px solid #dce7f7;border-radius:5px;padding:4px 9px;margin-bottom:14px
+}
+.env i{width:6px;height:6px;border-radius:50%;background:var(--brand);display:block}
+h1{font-size:20px;font-weight:700;line-height:1.45;letter-spacing:.2px}
+.desc{font-size:13.5px;color:var(--ink-2);line-height:1.8;margin-top:9px}
+.ios-note{
+  display:none;font-size:13px;color:var(--ink-2);line-height:1.75;
+  background:#f8fafc;border-left:3px solid var(--brand);
+  padding:10px 12px;margin-top:14px;border-radius:0 6px 6px 0
+}
+html.ios .ios-note{display:block}
+
+/* 右上角菜单提示：静态、克制，不做跳动动画 */
+.menu-hint{
+  position:absolute;right:20px;top:20px;text-align:right;
+  font-size:11px;color:var(--ink-3);line-height:1.5
+}
+.menu-hint b{display:block;font-size:17px;color:var(--ink-2);font-weight:600;letter-spacing:2px;line-height:1}
+.menu-hint span{display:block;margin-top:3px}
+
+/* ---------- 步骤 ---------- */
+.sec{padding:19px 22px 20px;border-bottom:1px solid var(--line-2)}
+.sec-t{font-size:12px;font-weight:700;color:var(--ink-3);letter-spacing:1px;margin-bottom:14px}
+ol{list-style:none}
+ol li{display:flex;align-items:flex-start;gap:11px;margin-bottom:12px;font-size:14px;line-height:1.7;color:var(--ink-2)}
+ol li:last-child{margin-bottom:0}
+ol .n{
+  width:20px;height:20px;flex:0 0 20px;margin-top:2px;border-radius:50%;
+  background:var(--brand-soft);color:var(--brand);
+  font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center
+}
+ol b{color:var(--ink);font-weight:600}
+
+/* ---------- 地址 ---------- */
+.addr{padding:19px 22px 22px}
+.addr-t{font-size:12px;font-weight:700;color:var(--ink-3);letter-spacing:1px;margin-bottom:10px}
+.urlbox{
+  display:flex;align-items:center;gap:10px;
+  border:1px solid var(--line);background:#fbfcfe;border-radius:9px;
+  padding:11px 12px;margin-bottom:12px
+}
+#urlInput{
+  flex:1;min-width:0;border:none;background:transparent;outline:none;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13px;color:var(--ink-2);-webkit-appearance:none
+}
+.btn{
+  display:block;width:100%;border:1px solid var(--brand);border-radius:9px;
+  padding:12px 14px;background:var(--brand);color:#fff;
+  font-family:inherit;font-size:14.5px;font-weight:600;letter-spacing:.3px;
+  cursor:pointer;-webkit-appearance:none;appearance:none
+}
+.btn:active{background:#173d7d}
+.btn.sec{
+  background:#fff;color:var(--brand);border-color:#d6e0f0;font-weight:500;font-size:13.5px
+}
+.btn.sec:active{background:var(--brand-soft)}
+#retryBtn{display:none;margin-top:10px}
+html.android #retryBtn{display:block}
+#tip{font-size:12.5px;line-height:1.6;margin-top:11px;text-align:center;display:none}
+#tip.ok{color:var(--ok)}#tip.warn{color:#b45309}
+
+/* ---------- 页脚 ---------- */
+.foot{padding:16px 4px 0;font-size:11.5px;color:var(--ink-3);line-height:1.85;text-align:center}
+.foot .sep{color:#cbd2dd;margin:0 5px}
+.foot b{color:var(--ink-2);font-weight:500}
+
+/* ---------- 普通浏览器：极简过渡，不给同学看多余内容 ---------- */
+#loading{display:block;text-align:center;padding:64px 10px;color:var(--ink-2);font-size:14px;line-height:1.9}
+#loading .spin{
+  width:22px;height:22px;margin:0 auto 16px;border:2px solid #dce3ee;
+  border-top-color:var(--brand);border-radius:50%;animation:r .8s linear infinite
+}
+@keyframes r{to{transform:rotate(360deg)}}
+#loading a{color:var(--brand);text-decoration:none;font-size:13px;display:inline-block;margin-top:10px}
+html.inapp #guide{display:block}
+html.inapp #loading{display:none}
+html.inapp-force #guide{display:block}
+html.inapp-force #loading{display:none}
+#guide{display:none}
+</style>
+<script>
+/* ================= 配置 ================= */
+var CONFIG = {
+  /* 对外唯一展示地址：界面、复制、分享链接都只用这个 */
+  DISPLAY: 'https://whany123.github.io/pigger/',
+  /* 实际站点地址：分片存放，仅内部解码用于跳转，不渲染到页面任何位置。
+     静态页必须自己持有目标地址才能完成跳转，这是绕不开的；但界面、
+     复制内容、链接、分享文本里都只有 DISPLAY 这一个地址。 */
+  TARGET_B64: ['aHR0cDovLz','EyMTMubG92','ZXNsaWZlLm','Jpei8='].join(''),
+  AUTO_INTENT_ON_ANDROID: true,   /* 安卓是否自动尝试唤起系统浏览器 */
+  ALLOW_HOSTS: []                 /* ?u= 覆盖时的 host 白名单，留空=只允许真实站域名 */
+};
+
+/* ================= 内部目标解析（不出现在 UI） ================= */
+function b64d(s){
+  try{
+    s=String(s).replace(/-/g,'+').replace(/_/g,'/');
+    while(s.length%4)s+='=';
+    return decodeURIComponent(Array.prototype.map.call(atob(s),function(c){
+      return '%'+('00'+c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+  }catch(e){return '';}
+}
+function hostOf(u){var m=String(u).match(/^https?:\/\/([^\/?#]+)/i);return m?m[1].toLowerCase():'';}
+var REAL_TARGET = b64d(CONFIG.TARGET_B64) || CONFIG.DISPLAY;
+
+function readTarget(){
+  var t = REAL_TARGET;
+  try{
+    var m=location.search.match(/[?&]u=([^&]+)/);
+    if(m){
+      var v=decodeURIComponent(m[1]);
+      if(!/^https?:\/\//i.test(v)){ var d=b64d(v); if(d) v=d; }
+      if(/^https?:\/\//i.test(v)){
+        var allow=CONFIG.ALLOW_HOSTS.length?CONFIG.ALLOW_HOSTS:[hostOf(REAL_TARGET)];
+        if(allow.indexOf(hostOf(v))>=0) t=v;   /* 不在白名单静默忽略，防开放重定向 */
+      }
+    }
+  }catch(e){}
+  return t;
+}
+var TARGET=readTarget();
+var DISPLAY=CONFIG.DISPLAY;
+
+/* ================= UA 判定（顺序不能乱，QQ浏览器须放行） ================= */
+var UA=navigator.userAgent||'';
+var APPS=[
+  {name:'微信',    re:/MicroMessenger/i},
+  {name:'QQ',      re:/QQ\/\d/i},
+  {name:'QQ',      re:/V1_(AND|IPH)_SQ/i},
+  {name:'抖音',    re:/ToutiaoMicroApp|aweme|Douyin/i},
+  {name:'今日头条',re:/NewsArticle|ToutiaoMicroApp/i},
+  {name:'微博',    re:/Weibo/i},
+  {name:'支付宝',  re:/AlipayClient/i},
+  {name:'百度',    re:/baiduboxapp/i},
+  {name:'快手',    re:/Kwai|kuaishou/i}
+];
+var APP=null;
+for(var i=0;i<APPS.length;i++){if(APPS[i].re.test(UA)){APP=APPS[i].name;break;}}
+var IS_IOS=/iPhone|iPad|iPod/i.test(UA);
+var IS_ANDROID=/Android/i.test(UA)&&!IS_IOS;
+
+window.__APP__=APP;window.__TARGET__=TARGET;window.__DISPLAY__=DISPLAY;
+window.__IS_IOS__=IS_IOS;window.__IS_ANDROID__=IS_ANDROID;
+
+/* ================= 同步打标：防闪烁 ================= */
+var H=document.documentElement;
+if(IS_IOS) H.className+=' ios';
+if(IS_ANDROID) H.className+=' android';
+if(APP){ H.className+=' inapp'; }
+else{
+  H.className+=' outapp';
+  try{ location.replace(TARGET); }catch(e){}   /* 失败时 #loading 里仍可重试 */
+}
+</script>
 </head>
 <body>
+<div class="wrap">
 
-<div class="card" id="card">
-  <div class="ring"></div>
-  <p class="title">正在打开…</p>
-  <p class="sub">请稍候</p>
-  <div class="bar"><i></i></div>
-  <p class="tip">若长时间无响应，<a id="manual" href="#">继续</a></p>
+  <!-- 普通浏览器：瞬间跳走；异常时留一句可点提示 -->
+  <div id="loading">
+    <div class="spin"></div>
+    <div>正在打开站点，请稍候…</div>
+    <a id="loadingLink" href="https://whany123.github.io/pigger/" rel="noopener">若长时间无响应，点此重试</a>
+    <noscript>
+      <div style="margin-top:18px;font-size:13px;color:#4a5568;line-height:1.8">
+        当前浏览器未启用 JavaScript。<br>
+        请复制以下地址到手机自带浏览器打开：<br>
+        <b style="color:#1f4e9c">https://whany123.github.io/pigger/</b>
+      </div>
+    </noscript>
+  </div>
+
+  <!-- 内置浏览器：规范提示，不提供「仍要继续访问」 -->
+  <div id="guide">
+    <div class="masthead">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3.2 10.4 12 3.6l8.8 6.8" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M5.4 9.6v9.1h13.2V9.6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9.6 18.7v-5.1h4.8v5.1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="mh-txt">
+        <strong>机电人的小站</strong>
+        <span>校园生活信息平台</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="menu-hint" aria-hidden="true"><b>⋯</b><span>右上角菜单</span></div>
+        <span class="env"><i></i>当前通过 <span id="appName">App</span> 内置浏览器打开</span>
+        <h1>请在系统浏览器中继续</h1>
+        <p class="desc">为保障登录、发帖与图片正常加载，本站需使用手机自带浏览器访问。当前环境无法完整支持上述功能，请按下方步骤操作。</p>
+        <div class="ios-note">iPhone / iPad 无法自动唤起浏览器，请先复制下方访问地址，再打开 <b>Safari</b> 粘贴访问。</div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">操作步骤</div>
+        <ol>
+          <li><span class="n">1</span><span>点击页面<b>右上角「⋯」</b>菜单</span></li>
+          <li><span class="n">2</span><span>选择<b>「在浏览器中打开」</b></span></li>
+          <li><span class="n">3</span><span>若菜单中没有该选项，先<b>复制访问地址</b>，再打开浏览器粘贴</span></li>
+        </ol>
+      </div>
+
+      <div class="addr">
+        <div class="addr-t">本站访问地址</div>
+        <div class="urlbox">
+          <input id="urlInput" type="text" readonly value="https://whany123.github.io/pigger/" aria-label="本站访问地址">
+        </div>
+        <button class="btn" id="copyBtn" type="button">复制访问地址</button>
+        <button class="btn sec" id="retryBtn" type="button">尝试直接打开浏览器</button>
+        <div id="tip"></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <b>机电人的小站</b><span class="sep">·</span>校园生活信息平台<br>
+      本站为同学自建的信息交流平台，与学校教务系统无关；<br>
+      不索取微信 / QQ 账号信息，无需下载 App。
+    </div>
+  </div>
 </div>
 
-<noscript><p>正在打开…</p></noscript>
-
 <script>
-  // ↓↓↓ 只改这两行 ↓↓↓
-  var TARGET = '1213.loveslife.biz';   // 纯域名或完整 https:// 地址都认
-  var JUMP_DELAY = 1500;               // 动画时长（毫秒），想更快改成 800
+(function(){
+  var APP=window.__APP__, DISPLAY=window.__DISPLAY__, TARGET=window.__TARGET__;
+  var IOS=window.__IS_IOS__, ANDROID=window.__IS_ANDROID__;
 
-  // 没写协议就自动补 https://；写了 http(s):// 就原样使用
-  var url = /^https?:\/\//i.test(TARGET) ? TARGET : 'https://' + TARGET.replace(/^\/+/, '');
+  /* 2 秒兜底：CSS / 脚本任何一环异常，引导层仍可见、按钮仍可用，绝不白屏 */
+  if(APP){ setTimeout(function(){
+    var h=document.documentElement;
+    if(h.className.indexOf('inapp-force')<0) h.className+=' inapp-force';
+    if(!window.__guideReady){
+      try{
+        document.getElementById('loadingLink').href=DISPLAY;
+        document.getElementById('urlInput').value=DISPLAY;
+        var b=document.getElementById('copyBtn');
+        if(!b.getAttribute('data-bound')){
+          b.setAttribute('data-bound','1');
+          b.onclick=function(){
+            var ta=document.getElementById('urlInput'),ok=false;
+            try{ta.focus();ta.setSelectionRange(0,ta.value.length);ok=document.execCommand('copy');}catch(e){}
+            if(ok){b.textContent='已复制 ✓';}
+            else{ta.focus();try{ta.select();}catch(e2){};b.textContent='请长按地址框复制';}
+          };
+        }
+      }catch(e){}
+    }
+  },2000); }
 
-  document.documentElement.style.setProperty('--d', JUMP_DELAY + 'ms');
-  document.getElementById('manual').href = url;
-  document.body.classList.add('ready');
+  document.getElementById('loadingLink').href=DISPLAY;
+  document.getElementById('urlInput').value=DISPLAY;
 
-  // 进度条走满 → 淡出 → 打开（replace 不留历史，后退不会弹回本页）
-  setTimeout(function () {
-    document.body.classList.add('done');
-    setTimeout(function () { location.replace(url); }, 300);
-  }, JUMP_DELAY);
+  if(!APP){ window.__guideReady=true; return; }
+
+  document.getElementById('appName').textContent=APP;
+
+  /* ---------- 复制：三级降级，复制内容永远是对外地址 ---------- */
+  function tip(msg,ok){
+    var t=document.getElementById('tip');
+    t.textContent=msg;t.style.display='block';
+    t.className=ok?'ok':'warn';
+  }
+  function selectFallback(){
+    var ta=document.getElementById('urlInput');
+    try{ta.focus();ta.setSelectionRange(0,ta.value.length);}catch(e){try{ta.select();}catch(e2){}}
+    tip('请长按地址框复制，再到浏览器粘贴',false);
+  }
+  function legacyCopy(){
+    var ta=document.getElementById('urlInput'),ok=false;
+    try{ta.focus();ta.setSelectionRange(0,ta.value.length);ok=document.execCommand('copy');}catch(e){}
+    if(ok){tip('已复制，打开浏览器粘贴访问',true);document.getElementById('copyBtn').textContent='已复制 ✓';}
+    else selectFallback();
+  }
+  var copyBtn=document.getElementById('copyBtn');
+  copyBtn.setAttribute('data-bound','1');
+  copyBtn.addEventListener('click',function(){
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      try{
+        navigator.clipboard.writeText(DISPLAY).then(function(){
+          tip('已复制，打开浏览器粘贴访问',true);copyBtn.textContent='已复制 ✓';
+        },legacyCopy);
+        return;
+      }catch(e){}
+    }
+    legacyCopy();
+  });
+  document.getElementById('urlInput').addEventListener('click',function(){
+    try{this.setSelectionRange(0,this.value.length);}catch(e){try{this.select();}catch(e2){}}
+  });
+
+  /* ---------- Android：尽力唤起系统浏览器（隐藏 iframe，失败不破坏引导页） ---------- */
+  function buildIntent(){
+    var m=TARGET.match(/^(https?):\/\/([^\/]+)(\/.*)?$/i);
+    if(!m) return '';
+    return 'intent://'+m[2]+(m[3]||'/')+'#Intent;scheme='+m[1]+
+           ';action=android.intent.action.VIEW;S.browser_fallback_url='+
+           encodeURIComponent(TARGET)+';end';
+  }
+  var intent=buildIntent();
+  if(ANDROID&&intent){
+    if(CONFIG.AUTO_INTENT_ON_ANDROID){
+      setTimeout(function(){
+        try{ if(sessionStorage.getItem('__jump_tried')) return; sessionStorage.setItem('__jump_tried','1'); }catch(e){}
+        try{
+          var f=document.createElement('iframe');
+          f.style.display='none';f.setAttribute('aria-hidden','true');
+          f.src=intent;document.body.appendChild(f);
+          setTimeout(function(){try{f.parentNode.removeChild(f);}catch(e){}},1600);
+        }catch(e){}
+      },320);
+    }
+    document.getElementById('retryBtn').addEventListener('click',function(){
+      try{location.href=intent;}catch(e){legacyCopy();}
+    });
+  }
+  window.__guideReady=true;
+})();
 </script>
 </body>
 </html>
