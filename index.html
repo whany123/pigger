@@ -18,10 +18,12 @@
 
  行为：
   · 普通浏览器 → 直接进入站点
-  · 微信 / QQ / 抖音等内置浏览器 + Android → 尝试唤起系统浏览器，
-    同时保留引导层（微信内常被拦，引导层是真正兜底）
-  · 微信 / QQ / 抖音等内置浏览器 + iOS → 不尝试自动唤起（平台无可用
-    scheme），给出规范提示 + 一键复制对外地址
+  · 微信 / QQ / 抖音等内置浏览器 → 引导 + 复制对外地址
+    （微信 / QQ 均会拦截 intent://，自动唤起不可靠，默认关闭自动尝试；
+      CONFIG.AUTO_INTENT_ON_ANDROID 可打开，但仅作静默后台尝试）
+  · 底部按钮不再触发任何唤起/导航：点击必定「复制地址 + 高亮步骤 + 提示」，
+    在微信、QQ、以及 head 脚本异常时都能给出确定反馈，不会点了没反应
+  · iOS 不显示该按钮（无可用 scheme，且复制按钮已足够）
   · 无 JavaScript / 脚本异常 → 仍有可读提示与可复制地址，不白屏
 ================================================================
 -->
@@ -115,12 +117,17 @@ ol b{color:var(--ink);font-weight:600}
   cursor:pointer;-webkit-appearance:none;appearance:none
 }
 .btn:active{background:#173d7d}
+.btn:disabled{opacity:.62;cursor:default}
+.btn:disabled:active{background:var(--brand)}
 .btn.sec{
   background:#fff;color:var(--brand);border-color:#d6e0f0;font-weight:500;font-size:13.5px
 }
 .btn.sec:active{background:var(--brand-soft)}
-#retryBtn{display:none;margin-top:10px}
-html.android #retryBtn{display:block}
+/* 默认可见：不依赖 html.android class（部分 QQ 内置 WebView 里 head 脚本
+   打标失败会让按钮被 CSS 藏掉，看起来就是「按钮用不了」）。仅 iOS 隐藏。 */
+#retryBtn{display:block;margin-top:10px}
+html.ios #retryBtn{display:none}
+.sec.hl{border-left:3px solid var(--brand);background:#fbfcff}
 #tip{font-size:12.5px;line-height:1.6;margin-top:11px;text-align:center;display:none}
 #tip.ok{color:var(--ok)}#tip.warn{color:#b45309}
 
@@ -152,7 +159,8 @@ var CONFIG = {
      静态页必须自己持有目标地址才能完成跳转，这是绕不开的；但界面、
      复制内容、链接、分享文本里都只有 DISPLAY 这一个地址。 */
   TARGET_B64: ['aHR0cDovLz','EyMTMubG92','ZXNsaWZlLm','Jpei8='].join(''),
-  AUTO_INTENT_ON_ANDROID: true,   /* 安卓是否自动尝试唤起系统浏览器 */
+  AUTO_INTENT_ON_ANDROID: false, /* 微信/QQ 都会拦 intent://，默认不自动尝试；
+                                   置 true 则仅静默后台试一次，不影响按钮 */
   ALLOW_HOSTS: []                 /* ?u= 覆盖时的 host 白名单，留空=只允许真实站域名 */
 };
 
@@ -276,7 +284,7 @@ else{
           <input id="urlInput" type="text" readonly value="https://whany123.github.io/pigger/" aria-label="本站访问地址">
         </div>
         <button class="btn" id="copyBtn" type="button">复制访问地址</button>
-        <button class="btn sec" id="retryBtn" type="button">尝试直接打开浏览器</button>
+        <button class="btn sec" id="retryBtn" type="button">复制地址并查看步骤</button>
         <div id="tip"></div>
       </div>
     </div>
@@ -312,6 +320,20 @@ else{
             else{ta.focus();try{ta.select();}catch(e2){};b.textContent='请长按地址框复制';}
           };
         }
+        /* 主脚本若在绑定前抛错，底部按钮也必须能复制，不能变成死按钮 */
+        var rb=document.getElementById('retryBtn');
+        if(rb&&!rb.getAttribute('data-bound')){
+          rb.setAttribute('data-bound','1');
+          rb.textContent='复制地址并查看步骤';
+          function fallbackCopy(){
+            var ta=document.getElementById('urlInput'),ok=false;
+            try{ta.focus();ta.setSelectionRange(0,ta.value.length);ok=document.execCommand('copy');}catch(e){}
+            if(ok){rb.textContent='已复制 ✓';}
+            else{ta.focus();try{ta.select();}catch(e2){};rb.textContent='请长按地址框复制';}
+          }
+          rb.onclick=fallbackCopy;
+          rb.addEventListener('touchend',fallbackCopy,{passive:true});
+        }
       }catch(e){}
     }
   },2000); }
@@ -319,7 +341,28 @@ else{
   document.getElementById('loadingLink').href=DISPLAY;
   document.getElementById('urlInput').value=DISPLAY;
 
-  if(!APP){ window.__guideReady=true; return; }
+  if(!APP){
+    /* 若目标站加载慢 / 被网络拦住，别让同学一直对着「正在打开…」发呆。
+       链接的 href 仍是对外地址（界面和源码都不暴露真实站），点击时由 JS
+       再试一次进站 —— 这样「继续访问」是真能用的，不会点了又回到本页。 */
+    var lk=document.getElementById('loadingLink');
+    function goDirect(e){
+      if(e&&e.preventDefault) e.preventDefault();
+      try{ location.href=TARGET; }catch(err){}
+    }
+    if(lk){
+      lk.addEventListener('touchend',goDirect,{passive:false});
+      lk.addEventListener('click',goDirect);
+    }
+    setTimeout(function(){
+      try{
+        if(lk){ lk.textContent='继续访问 →'; lk.style.fontWeight='600'; }
+        var sp=document.querySelector('#loading .spin');
+        if(sp) sp.style.display='none';
+      }catch(e){}
+    },2500);
+    window.__guideReady=true; return;
+  }
 
   document.getElementById('appName').textContent=APP;
 
@@ -357,30 +400,65 @@ else{
     try{this.setSelectionRange(0,this.value.length);}catch(e){try{this.select();}catch(e2){}}
   });
 
-  /* ---------- Android：尽力唤起系统浏览器（隐藏 iframe，失败不破坏引导页） ---------- */
-  function buildIntent(){
-    var m=TARGET.match(/^(https?):\/\/([^\/]+)(\/.*)?$/i);
-    if(!m) return '';
-    return 'intent://'+m[2]+(m[3]||'/')+'#Intent;scheme='+m[1]+
-           ';action=android.intent.action.VIEW;S.browser_fallback_url='+
-           encodeURIComponent(TARGET)+';end';
-  }
-  var intent=buildIntent();
-  if(ANDROID&&intent){
-    if(CONFIG.AUTO_INTENT_ON_ANDROID){
-      setTimeout(function(){
-        try{ if(sessionStorage.getItem('__jump_tried')) return; sessionStorage.setItem('__jump_tried','1'); }catch(e){}
-        try{
-          var f=document.createElement('iframe');
-          f.style.display='none';f.setAttribute('aria-hidden','true');
-          f.src=intent;document.body.appendChild(f);
-          setTimeout(function(){try{f.parentNode.removeChild(f);}catch(e){}},1600);
-        }catch(e){}
-      },320);
+  /* ---------- 底部按钮：只做 100% 确定的事 ----------
+     微信、QQ 内置 WebView 都会静默拦截 intent:// —— 不抛异常、页面也不动，
+     这就是「点了没反应」的根因。QQ 里尤其明显。
+     所以按钮不再触发任何唤起 / 导航：点击必定
+       ① 复制地址  ② 高亮操作步骤  ③ 给出明确提示
+     在微信、QQ、以及 head 脚本打标失败时都可用，无任何依赖。 */
+  function silentCopy(){
+    var ta=document.getElementById('urlInput'),ok=false;
+    try{ ta.focus(); ta.setSelectionRange(0,ta.value.length); ok=document.execCommand('copy'); }catch(e){}
+    if(!ok && navigator.clipboard && navigator.clipboard.writeText){
+      try{ navigator.clipboard.writeText(DISPLAY).then(function(){},function(){}); ok=true; }catch(e){}
     }
-    document.getElementById('retryBtn').addEventListener('click',function(){
-      try{location.href=intent;}catch(e){legacyCopy();}
-    });
+    return ok;
+  }
+  var retryBtn=document.getElementById('retryBtn');
+  retryBtn.setAttribute('data-bound','1');
+  var btnBusy=false;
+  function onRetry(){
+    if(btnBusy) return;
+    btnBusy=true;
+    var copied=silentCopy();
+    /* 高亮步骤区，把用户视线引到「右上角 ⋯」这条真正可行的路 */
+    try{
+      var sec=document.querySelector('.sec');
+      if(sec) sec.className=sec.className.replace(/\s*hl\b/,'')+' hl';
+    }catch(e){}
+    retryBtn.disabled=true;
+    retryBtn.textContent='已复制 · 按上方步骤操作';
+    if(copied){
+      tip('地址已复制。请打开手机浏览器粘贴访问；或点右上角 ⋯ →「在浏览器中打开」。',true);
+    }else{
+      tip('请长按上方地址框复制，再到浏览器粘贴；或点右上角 ⋯ →「在浏览器中打开」。',false);
+    }
+    setTimeout(function(){
+      btnBusy=false; retryBtn.disabled=false;
+      retryBtn.textContent='再复制一次地址';
+    },1600);
+  }
+  /* click + touchend 双通道：微信 / QQ 的 WebView 可能吞掉其中之一 */
+  retryBtn.addEventListener('touchend',onRetry,{passive:true});
+  retryBtn.addEventListener('click',onRetry);
+
+  /* 可选：安卓后台静默试一次 intent（默认关闭）。完全不改界面、不改按钮，
+     失败也无所谓 —— 引导层与复制才是真正兜底。 */
+  if(CONFIG.AUTO_INTENT_ON_ANDROID&&ANDROID){
+    setTimeout(function(){
+      try{ if(sessionStorage.getItem('__jump_tried')) return; sessionStorage.setItem('__jump_tried','1'); }catch(e){}
+      var m=TARGET.match(/^(https?):\/\/([^\/]+)(\/.*)?$/i);
+      if(!m) return;
+      var it='intent://'+m[2]+(m[3]||'/')+'#Intent;scheme='+m[1]+
+             ';action=android.intent.action.VIEW;S.browser_fallback_url='+
+             encodeURIComponent(TARGET)+';end';
+      try{
+        var f=document.createElement('iframe');
+        f.style.display='none';f.setAttribute('aria-hidden','true');f.src=it;
+        document.body.appendChild(f);
+        setTimeout(function(){try{if(f.parentNode)f.parentNode.removeChild(f);}catch(e){}},1600);
+      }catch(e){}
+    },320);
   }
   window.__guideReady=true;
 })();
