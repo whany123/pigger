@@ -16,13 +16,14 @@
  真实站点地址以编码形式存于 CONFIG.TARGET_B64，仅用于内部跳转，
  不渲染到页面任何可见位置、不写进链接 href。
 
- 行为：
-  · 普通浏览器 → head 里立即进入站点；未跳走时显示 A+C 融合过渡
-    （校门敞开 + 白卡递出，≤1.15s 一次性、不循环、无按钮）。
-    2.5s 自动重试一次，点画面任意处也可立即继续。
-  · 微信 / QQ / 抖音等内置浏览器 → 引导页原样保留（复制 + 步骤 + 底部按钮）
+ 行为（所有环境一律先播完 A+C 融合动画，再分流）：
+  · 校门敞开 + 白卡递出，≤1.4s 一次性、不循环、过渡屏无任何按钮
+  · 普通浏览器 → 动画播完再进入站点；2.5s 未跳走自动重试一次
+  · 微信 / QQ / 抖音等内置浏览器 → 动画播完再显示引导页
+    （引导页原样保留：复制 + 步骤 + 底部按钮 + 页脚）
     （微信 / QQ 均会拦截 intent://，自动唤起不可靠，默认关闭自动尝试；
       CONFIG.AUTO_INTENT_ON_ANDROID 可打开，但仅作静默后台尝试）
+  · 点画面任意处可跳过动画，立即进入下一步
   · 底部按钮不再触发任何唤起/导航：点击必定「复制地址 + 高亮步骤 + 提示」，
     在微信、QQ、以及 head 脚本异常时都能给出确定反馈，不会点了没反应
   · iOS 不显示该按钮（无可用 scheme，且复制按钮已足够）
@@ -196,11 +197,14 @@ html.ios #retryBtn{display:none}
   .ld-curtain,.ld-door{display:none}
 }
 
-html.inapp #guide{display:block}
-html.inapp #loading{display:none}
-html.inapp-force #guide{display:block}
-html.inapp-force #loading{display:none}
+/* 显隐：所有环境先播动画，引导页先藏着；动画结束由 JS 打 done 再分流。
+   done + 内置浏览器 → 显示引导页；done + 普通浏览器 → 已跳走（两者都隐藏）。 */
 #guide{display:none}
+html.done #loading{display:none}
+html.done.inapp #guide{display:block}
+/* 2s 兜底：主脚本异常时也强制显示引导层，绝不白屏 */
+html.inapp-force #loading{display:none}
+html.inapp-force #guide{display:block}
 </style>
 <script>
 /* ================= 配置 ================= */
@@ -268,15 +272,51 @@ var IS_ANDROID=/Android/i.test(UA)&&!IS_IOS;
 window.__APP__=APP;window.__TARGET__=TARGET;window.__DISPLAY__=DISPLAY;
 window.__IS_IOS__=IS_IOS;window.__IS_ANDROID__=IS_ANDROID;
 
-/* ================= 同步打标：防闪烁 ================= */
+/* ================= 同步打标：防闪烁 =================
+   不再在这里跳转：所有环境先播完 A+C 动画，再由尾部脚本分流。 */
 var H=document.documentElement;
 if(IS_IOS) H.className+=' ios';
 if(IS_ANDROID) H.className+=' android';
 if(APP){ H.className+=' inapp'; }
-else{
-  H.className+=' outapp';
-  try{ location.replace(TARGET); }catch(e){}   /* 失败时 #loading 播融合动画，2.5s 自动重试 */
-}
+else{ H.className+=' outapp'; }
+
+/* ============ 2s 兜底：放在 head，不依赖尾部脚本 ============
+   尾部脚本正常时 1.4s 就会 finish 并置 __done__，这里直接跳过；
+   尾部脚本整体未执行 / 被拦时，仍能显示引导页、按钮仍可复制，绝不白屏。 */
+setTimeout(function(){
+  if(window.__done__) return;
+  var h=document.documentElement;
+  if(h.className.indexOf('done')<0) h.className+=' done';
+  if(APP&&h.className.indexOf('inapp-force')<0) h.className+=' inapp-force';
+  if(!APP){ try{ location.replace(TARGET); }catch(e){} return; }
+  if(window.__guideReady) return;
+  try{
+    var ui=document.getElementById('urlInput'); if(ui) ui.value=DISPLAY;
+    var b=document.getElementById('copyBtn');
+    if(b&&!b.getAttribute('data-bound')){
+      b.setAttribute('data-bound','1');
+      b.onclick=function(){
+        var ta=document.getElementById('urlInput'),ok=false;
+        try{ta.focus();ta.setSelectionRange(0,ta.value.length);ok=document.execCommand('copy');}catch(e){}
+        if(ok){b.textContent='已复制 ✓';}
+        else{ta.focus();try{ta.select();}catch(e2){};b.textContent='请长按地址框复制';}
+      };
+    }
+    var rb=document.getElementById('retryBtn');
+    if(rb&&!rb.getAttribute('data-bound')){
+      rb.setAttribute('data-bound','1');
+      rb.textContent='复制地址并查看步骤';
+      function fallbackCopy(){
+        var ta=document.getElementById('urlInput'),ok=false;
+        try{ta.focus();ta.setSelectionRange(0,ta.value.length);ok=document.execCommand('copy');}catch(e){}
+        if(ok){rb.textContent='已复制 ✓';}
+        else{ta.focus();try{ta.select();}catch(e2){};rb.textContent='请长按地址框复制';}
+      }
+      rb.onclick=fallbackCopy;
+      rb.addEventListener('touchend',fallbackCopy,{passive:true});
+    }
+  }catch(e){}
+},2000);
 </script>
 </head>
 <body>
@@ -376,63 +416,35 @@ else{
 (function(){
   var APP=window.__APP__, DISPLAY=window.__DISPLAY__, TARGET=window.__TARGET__;
   var IOS=window.__IS_IOS__, ANDROID=window.__IS_ANDROID__;
+  var H=document.documentElement;
 
-  /* 2 秒兜底：CSS / 脚本任何一环异常，引导层仍可见、按钮仍可用，绝不白屏 */
-  if(APP){ setTimeout(function(){
-    var h=document.documentElement;
-    if(h.className.indexOf('inapp-force')<0) h.className+=' inapp-force';
-    if(!window.__guideReady){
-      try{
-        document.getElementById('urlInput').value=DISPLAY;
-        var b=document.getElementById('copyBtn');
-        if(!b.getAttribute('data-bound')){
-          b.setAttribute('data-bound','1');
-          b.onclick=function(){
-            var ta=document.getElementById('urlInput'),ok=false;
-            try{ta.focus();ta.setSelectionRange(0,ta.value.length);ok=document.execCommand('copy');}catch(e){}
-            if(ok){b.textContent='已复制 ✓';}
-            else{ta.focus();try{ta.select();}catch(e2){};b.textContent='请长按地址框复制';}
-          };
-        }
-        /* 主脚本若在绑定前抛错，底部按钮也必须能复制，不能变成死按钮 */
-        var rb=document.getElementById('retryBtn');
-        if(rb&&!rb.getAttribute('data-bound')){
-          rb.setAttribute('data-bound','1');
-          rb.textContent='复制地址并查看步骤';
-          function fallbackCopy(){
-            var ta=document.getElementById('urlInput'),ok=false;
-            try{ta.focus();ta.setSelectionRange(0,ta.value.length);ok=document.execCommand('copy');}catch(e){}
-            if(ok){rb.textContent='已复制 ✓';}
-            else{ta.focus();try{ta.select();}catch(e2){};rb.textContent='请长按地址框复制';}
-          }
-          rb.onclick=fallbackCopy;
-          rb.addEventListener('touchend',fallbackCopy,{passive:true});
-        }
-      }catch(e){}
-    }
-  },2000); }
+  /* 动画总长：门帘 .78s / 卡片落定 1.30s / 进度线走满 1.37s → 取 1.4s。
+     系统开启「减少动态效果」时 CSS 直接给终态，250ms 即可分流。 */
+  var REDUCE=false;
+  try{ REDUCE=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){}
+  var ANIM_MS=REDUCE?250:1400;
+  var finished=false;
 
-  document.getElementById('urlInput').value=DISPLAY;
-
-  if(!APP){
-    /* 过渡屏只有 A+C 融合动画，没有任何按钮。
-       兜底：2.5s 若仍没跳走，自动再试一次；点画面任意处也能立即继续。
-       真实站地址仍只在 JS 内部使用，界面与 href 都不暴露。 */
-    var left=false;
-    function goDirect(){
-      if(left) return;
-      try{ location.replace(TARGET); }catch(e){}
-    }
-    function markLeft(){left=true;}
-    document.addEventListener('visibilitychange',function(){if(document.hidden)markLeft();});
-    window.addEventListener('pagehide',markLeft);
-    setTimeout(goDirect,2500);                       /* 自动重试一次 */
-    document.addEventListener('touchend',goDirect,{passive:true});
-    document.addEventListener('click',goDirect);     /* 点任意处立即继续 */
-    window.__guideReady=true; return;
+  /* 动画播完：内置浏览器显示引导页；普通浏览器进入站点 */
+  function finish(){
+    if(finished) return;
+    finished=true; window.__done__=true;
+    if(H.className.indexOf('done')<0) H.className+=' done';
+    if(!APP){ try{ location.replace(TARGET); }catch(e){} }
   }
 
-  document.getElementById('appName').textContent=APP;
+  document.getElementById('urlInput').value=DISPLAY;
+  document.getElementById('appName').textContent=APP||'App';
+
+  /* 点画面任意处：跳过动画立即进入下一步（内置环境不触发任何导航） */
+  document.addEventListener('touchend',finish,{passive:true});
+  document.addEventListener('click',finish);
+
+  /* 先播完，再分流；普通浏览器另给 2.5s 一次重试，防止目标站响应慢 */
+  setTimeout(finish,ANIM_MS);
+  if(!APP){
+    setTimeout(function(){ try{ location.replace(TARGET); }catch(e){} },2500);
+  }
 
   /* ---------- 复制：三级降级，复制内容永远是对外地址 ---------- */
   function tip(msg,ok){
@@ -512,7 +524,7 @@ else{
 
   /* 可选：安卓后台静默试一次 intent（默认关闭）。完全不改界面、不改按钮，
      失败也无所谓 —— 引导层与复制才是真正兜底。 */
-  if(CONFIG.AUTO_INTENT_ON_ANDROID&&ANDROID){
+  if(CONFIG.AUTO_INTENT_ON_ANDROID&&ANDROID&&APP){
     setTimeout(function(){
       try{ if(sessionStorage.getItem('__jump_tried')) return; sessionStorage.setItem('__jump_tried','1'); }catch(e){}
       var m=TARGET.match(/^(https?):\/\/([^\/]+)(\/.*)?$/i);
